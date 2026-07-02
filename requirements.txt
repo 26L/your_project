@@ -1,0 +1,9 @@
+# 설치: pip install -e .  (pyproject 사용) 또는 pip install -r requirements.txt
+llama-index-core>=0.12,<0.15
+llama-index-llms-google-genai>=0.1
+llama-index-embeddings-google-genai>=0.1
+llama-index-llms-anthropic>=0.6
+llama-index-embeddings-openai>=0.3
+llama-index-retrievers-bm25>=0.5
+python-dotenv>=1.0
+pyyaml>=6.0

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ragbench"
+version = "0.0.1"
+description = "여러 RAG 기법을 같은 코퍼스·평가셋으로 비교하는 벤치마크 하니스 (문서 연결성 중심)"
+requires-python = ">=3.10"
+dependencies = [
+    "llama-index-core>=0.12,<0.15",
+    "llama-index-llms-google-genai>=0.1",
+    "llama-index-embeddings-google-genai>=0.1",
+    "llama-index-llms-anthropic>=0.6",
+    "llama-index-embeddings-openai>=0.3",
+    "llama-index-retrievers-bm25>=0.5",
+    "python-dotenv>=1.0",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+ragbench = "ragbench.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

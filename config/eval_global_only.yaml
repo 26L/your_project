@@ -1,0 +1,64 @@
+- question: 하울의 세 사업부는 각각 어떤 프로젝트를 추진하고 있나?
+  type: global
+  relevant_sources: []
+  answer_keywords:
+  - 농업사업부
+  - 인력사업부
+  - 신사업개발부
+  reference_answer: 농업사업부는 스마트팜·유기농·콩 재배 자동화 등, 인력사업부는 파견 플랫폼·교육 개편·채용 자동화 등, 신사업개발부는
+    데이터 분석·AI 추천·모바일 앱 등을 추진한다.
+- question: 전사적으로 예산과 경비는 어떤 규정과 일정에 따라 관리되나?
+  type: global
+  relevant_sources: []
+  answer_keywords:
+  - 경비 처리 규정
+  - 25일
+  reference_answer: 경비 처리 규정에 따라 매월 25일 마감·익월 10일 지급하며, 일정은 부서 일정을 따른다.
+- question: 하울의 인력 운영(채용·교육·평가·인수인계)은 전체적으로 어떻게 이어지나?
+  type: global
+  relevant_sources: []
+  answer_keywords:
+  - 채용
+  - 온보딩
+  - 직무교육
+  - 인사평가
+  reference_answer: 채용 후 온보딩 교육, 재직 중 직무교육과 인사평가·승진, 퇴직·이동 시 인수인계로 이어진다.
+- question: 신사업개발부의 활동과 사용 장비의 특징을 종합하면?
+  type: global
+  relevant_sources: []
+  answer_keywords:
+  - GPU 서버
+  - 데이터
+  reference_answer: 데이터 분석·AI·모바일 등 기술 프로젝트를 추진하며 GPU 서버·개발용 노트북을 주로 사용한다.
+- question: 하울의 복지와 휴가 제도 전반의 특징을 요약하면?
+  type: global
+  relevant_sources: []
+  answer_keywords:
+  - 연차
+  - 복지 포인트
+  - 경조
+  reference_answer: 연차·경조사 휴가, 경조금, 연 60만원 복지 포인트, 미사용 연차 보상 등을 운영한다.
+- question: 회사의 정보보안과 자산 관리는 어떻게 연결되어 운영되나?
+  type: global
+  relevant_sources: []
+  answer_keywords:
+  - 장비
+  - 권한
+  - 백업
+  reference_answer: 장비 장부로 자산을 관리하고, 정보보안 규정으로 장비·계정의 접근 통제와 백업을 적용한다.
+- question: 하울에서 신입사원이 입사해 정착하기까지의 과정은?
+  type: global
+  relevant_sources: []
+  answer_keywords:
+  - 온보딩
+  - 수습
+  - 멘토
+  reference_answer: 채용 후 온보딩 교육과 수습 3개월, 멘토 배정을 거쳐 부서에 정식 배치된다.
+- question: 사업부별 인력 구성과 프로젝트 참여에는 어떤 경향이 있나?
+  type: global
+  relevant_sources: []
+  answer_keywords:
+  - 부서
+  - 프로젝트
+  - 직급
+  reference_answer: 각 사업부는 부서장 아래 직급별 인력으로 구성되며, 구성원이 부서 프로젝트에 참여한다.

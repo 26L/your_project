@@ -1,0 +1,95 @@
+# 작업 타임라인 (WORKLOG)
+
+> RAG 비교·검증 프로젝트(`ragbench`)의 진행 기록. 시각은 파일 최종수정 기준 근사치이며, 대부분 2026-06-29 저녁 ~ 06-30의 연속 세션이다.
+
+## 2026-06-29 (저녁)
+**설계 방향 확정 + 스캐폴딩 시작**
+- CLAUDE.md를 **RAG 비교·검증 프로젝트**로 정의(처음엔 다른 프로젝트로 오해 → 신규 RAG → 문서 Q&A → 7개 기법 벤치마크로 확정).
+- 비교 대상 7기법·임베딩 축·검증표 정리, **논문 부록 웹 검증**(arXiv·공식 레포).
+- 공통 인터페이스 `core/interface.py` 작성. *(21:23)*
+
+## 2026-06-30 (새벽 00~02시)
+**하니스 + 베이스라인 + 코퍼스**
+- 패키지/`pyproject` *(00:47)*, **Standard RAG** *(00:48)*, uv 환경.
+- 공급자: Claude+OpenAI → **Google AI Studio(Gemini)** 전환, `GEMINI_API_KEY`, end-to-end 통과.
+- **eval 하니스**(recall@k 등) + 결과 저장.
+- 「주식회사 하울」 코퍼스 구축(동화 인물; 규정·행정·부서별·양식·통계·교육 + 채용/평가/급여/정보보안/출장/사업계획/인수인계).
+- 코퍼스 생성기 `generate_large_corpus.py` *(01:56)*, **평가셋** `eval_sample.yaml` *(02:15)*.
+- 검색 3종(standard/bm25/hybrid) 비교, 노이즈 토글, 유형 태그(single/multi/relational/global).
+
+## 2026-06-30 (새벽 04시)
+**코퍼스 품질 개선**
+- "뼈대 문서" 지적 → **LLM으로 rich 본문 생성** `generate_rich_corpus.py` *(04:07)*, 153종 (≈$0.32).
+
+## 2026-06-30 (오후 12~16시)
+**GraphRAG + 로컬 임베딩 + 진단**
+- GraphRAG 논문 정독·번역([graphrag_논문정리.md](graphrag_논문정리.md)), 구현 `methods/graphrag.py` *(12:21)* — MAX_TOKENS·nested async·임베딩 quota 해결.
+- **로컬 임베딩**(multilingual-e5-small, **GPU**) 추가 → rate limit 해방.
+- GraphRAG 공정 재대결(embed_kg_nodes=True + 로컬), 결과 `results/graphrag.json` *(15:47)*.
+- ⭐ **그래프 진단**: 엔티티 노드에 **속성·설명·임베딩 없음** 발견 → "빈약한 그래프"가 저성능 원인.
+- 그래프 품질 개선 설계안 [graph_quality_design.md](graph_quality_design.md) 작성.
+
+## 2026-07-01 (그래프 품질 개선 — E2B + 레버 L1~L5 + Neo4j)
+**빈약 그래프 → 풍부한 그래프 재구성 + 검색전략·전역강화 실험. 전 과정 로컬·무료(M2 gemma + RTX e5 + Neo4j).**
+- **L1 추출기 교체**: `graphrag_e2b`(gemma4:e2b 산문추출 `이름|유형|설명` → 파싱). 210문서 3.5h → 엔티티 1,152·관계 1,376·**description 711개**(빈약 그래프는 0%).
+- **L2 정규화**: 라벨/타입/이름 정규화(`normalize_type/rel/name`) 추출기 내장. 「」 병합·관계 표면형 통합. (기존그래프 수동병합은 스키마 파손 → 되돌림, 백업 `.pre_l2`)
+- **L3 임베딩 점검**: 엔티티 전부 e5 임베딩 보유 확인 → **이미 정상**.
+- **1차 4종 평가**(로컬 judge): global judge에서 **graphrag_e2b 1위(0.63)** — GraphRAG "global sensemaking 강점" 첫 실측. (핀포인트는 평면검색 우위)
+- **재순위(E5Rerank)**: 동점 블롭 해소 → recall 0.13→0.34·relational judge 0.4→0.8 ✅ / **global judge 0.63→0.25 ❌**(top-4 컷이 breadth 죽임).
+- **num_ctx 실측**: Ollama 기본 4096 절단 확정. 8GB에서 ~11~16k 가능하나 속도 대가. num_ctx=8192로도 **global 회복 실패**(0.125) → 병목은 컨텍스트 크기 아닌 "문서 4개만 투입".
+- **L5 커뮤니티 요약**(`graphrag_e2b_l5`): Neo4j GDS Louvain 33군집 → gemma 요약 → 검색 주입. global **kw_recall 0.55→0.635 회복**(breadth 살아남) 하지만 **judge 0.25 그대로**(요약 노이즈).
+- **Neo4j+Cypher+GDS 도입**: `docker-compose.yml`, 그래프 적재(`migrate_graph_to_neo4j.py`), 시각화·PageRank/Louvain 준비.
+- **발견한 한계**: 추출기 `text[:2000]` 절단이 청크 2048과 불일치 → 긴 문서 손실(속도 위해 청크 키우며 놓침).
+
+### 미해결 결정 (다음 세션)
+1. **검색전략**: global엔 breadth 유지 필요 → **적응형 top_n**(핀포인트=재순위 top4 / global=넓게) 확정 필요. (~12분 테스트)
+2. **재구축**: truncation 수정(`text[:2000]`→넉넉히) + 청크 재설정(2048유지 vs 1024) + L5 → **한 번의 깨끗한 재구축** 후 전체 36문항 최종 비교.
+3. CLAUDE.md §10.4에 1차 평가 기록됨. 재순위·num_ctx·L5·Neo4j는 추후 반영.
+
+### 인프라 상태 (재개용)
+- Neo4j 실행 중(`docker compose up -d`, neo4j/ragbench123, :7474/:7687), 그래프 적재됨.
+- 신규 코드: `methods/graphrag_e2b.py`(E2B추출·정규화·E5Rerank·L5), `config/ollama.yaml`(num_ctx 8192, chunk 2048), `scripts/{migrate_graph_to_neo4j,build_community_summaries}.py`.
+- 결과: `results/local_eval/*_judge.json`, `storage/graphrag_e2b/community_summaries.json`(33요약).
+- **비용 오늘 $0**(전부 로컬). Gemini 선불 잔액 유지.
+
+## 2026-07-02 (v2 재구축 + 공정 최종비교)
+**청크 1024 + truncation 수정으로 그래프 재구축 → baseline까지 동일 청크로 재평가(공정성 확보).**
+- v2 그래프: 노드 1,152→2,310·커뮤니티요약 33→79(더 촘촘).
+- **공정성 수정**: baseline이 예전(청크2048) 수치였음 → 3종 전부 청크1024 재인덱싱+재평가.
+
+**최종 비교 (전부 청크1024·로컬 e5+gemma·36문항 judge)**
+
+| 방식 | recall | kw_recall | judge | latency |
+| --- | --- | --- | --- | --- |
+| bm25 | 0.708 | 0.785 | 0.639 | 39s |
+| **standard** | 0.863 | 0.840 | **0.750** | 38s |
+| hybrid | 0.863 | 0.877 | 0.722 | 42s |
+| graphrag_e2b | 0.321 | 0.593 | 0.500 | 75s |
+| graphrag_e2b_l5 | 0.393 | 0.701 | 0.528 | 77s |
+
+**유형별 judge_correct** (★ global):
+
+| 방식 | single | multi | relational | global |
+| --- | --- | --- | --- | --- |
+| bm25 | 0.73 | 0.67 | 1.00 | 0.25 |
+| standard | 1.00 | 0.83 | 0.80 | 0.25 |
+| hybrid | 1.00 | 0.75 | 0.80 | 0.25 |
+| graphrag_e2b | 0.55 | 0.42 | 1.00 | 0.25 |
+| **graphrag_e2b_l5** | 0.36 | 0.67 | 0.80 | **0.38** |
+
+- **결론**: 청크1024에서 **평면검색이 더 강해짐**(standard recall 0.69→0.86, judge 0.75) — 공정 재평가로 comparison이 실제로 바뀜. 그래프는 핀포인트 평가서 최하위. **단 graphrag_e2b_l5가 global 유일 승자(0.38 vs 전부 0.25)** — 공정 조건에서도 커뮤니티 요약의 전역 가치 생존.
+- 트레이드오프 확정: **L5는 multi·global↑ / single↓** → **적응형 검색**(single=재순위 / global=L5·breadth)이 다음 스텝.
+- 결과: `results/local_eval/{bm25,standard,hybrid,graphrag_e2b,graphrag_e2b_l5}_v2_judge.json`. 비용 $0.
+
+## 핵심 결과 (누적)
+- **하이브리드 검색이 대체로 최고**, 다중 홉·노이즈가 공통 난점.
+- **GraphRAG는 현재 미결론** — 그래프가 빈약(노드 속성/임베딩/커뮤니티 요약 없음)해 공정 판정 불가(CLAUDE.md §10).
+- 비용 누적 ~$5~7 (대부분 생성 LLM, 임베딩은 로컬로 $0).
+
+## 산출물 위치
+- 설계·규칙·결과 요약: `CLAUDE.md`
+- 논문 정리: `docs/graphrag_논문정리.md`
+- 그래프 개선 설계: `docs/graph_quality_design.md`
+- 결과 데이터: `results/*.json` (+ `results/archive_24doc/`)
+- 코퍼스: `data/company/` (+ `data/noise/`)
+- 생성기: `scripts/generate_large_corpus.py`, `scripts/generate_rich_corpus.py`

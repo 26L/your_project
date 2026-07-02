@@ -1,0 +1,17 @@
+# 로컬 임베딩 실험용 설정 — 임베딩을 무료 로컬(GPU)로. rate limit 없음 → GraphRAG 공정 비교 가능.
+# 생성 LLM은 동일(Gemini), 임베딩만 교체(비교 축).
+llm:
+  provider: google
+  model: gemini-2.5-flash
+  temperature: 0.1
+  max_tokens: 4096
+
+embed:
+  provider: local
+  model: intfloat/multilingual-e5-small   # ~470MB, GPU, dim 384, 다국어(한국어 양호)
+
+chunk_size: 512
+chunk_overlap: 64
+top_k: 4
+data_dir: data/company
+storage_dir: storage

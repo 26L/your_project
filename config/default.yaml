@@ -1,0 +1,16 @@
+# 실험 설정 — 기법/임베딩/청킹/top-k를 여기서 바꿔 비교한다 (하드코딩 금지).
+llm:
+  provider: google
+  model: gemini-2.5-flash   # 무료 티어 포함, 1M 컨텍스트(길이 여유). (lite 제외 — 텍스트 길이 제한 이슈)
+  temperature: 0.1
+  max_tokens: 4096   # rich 코퍼스는 합성 답변이 길어짐 + 2.5 thinking 토큰 → 여유 필요(작으면 MAX_TOKENS)
+
+embed:
+  provider: google
+  model: gemini-embedding-001   # 무료 티어 有, 작은 코퍼스는 사실상 0원. $0 원하면 로컬(BGE/E5)로 교체 가능
+
+chunk_size: 512
+chunk_overlap: 64
+top_k: 4
+data_dir: data/company   # 기본=깨끗한 코퍼스. 노이즈 포함하려면 인덱싱 시 --data data (data/noise 까지 포함)
+storage_dir: storage

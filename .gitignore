@@ -1,0 +1,9 @@
+.env
+data/
+storage/
+results/
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.vscode/

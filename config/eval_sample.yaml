@@ -1,0 +1,227 @@
+# 하울 사내문서 코퍼스 평가셋 (유형 태그 포함).
+# type: single(단일 문서) / multi(다중 홉) / relational(관계·인과) — 유형별 지표 분해용.
+# relevant_sources: 정답 근거 문서(파일명) · answer_keywords: 답변 품질 거친 프록시
+
+# ── 단일 문서 (single) ──────────────────────────────
+- question: "500만원 이상 경비는 누가 전결하나?"
+  type: single
+  relevant_sources: ["부서_공통_사내규정.md"]
+  answer_keywords: ["대표"]
+  reference_answer: "대표 전결."
+
+- question: "농업사업부장은 누구인가?"
+  type: single
+  relevant_sources: ["직원_현황.md"]
+  answer_keywords: ["흥부"]
+  reference_answer: "흥부 부장."
+
+- question: "트랙터는 어느 부서가 보유하고 있나?"
+  type: single
+  relevant_sources: ["장비_장부.md"]
+  answer_keywords: ["농업사업부"]
+  reference_answer: "농업사업부."
+
+- question: "연차 사용률이 가장 높은 부서는?"
+  type: single
+  relevant_sources: ["연차_휴가_사용_통계.md"]
+  answer_keywords: ["농업사업부"]
+  reference_answer: "농업사업부(58%)."
+
+- question: "신입사원 온보딩 교육은 며칠 동안 진행되나?"
+  type: single
+  relevant_sources: ["신입사원_온보딩.md"]
+  answer_keywords: ["2주"]
+  reference_answer: "입사 첫 2주 집중 과정."
+
+- question: "가장 많은 비중을 차지하는 직급은?"
+  type: single
+  relevant_sources: ["인력_통계.md"]
+  answer_keywords: ["사원"]
+  reference_answer: "사원(약 46%)."
+
+- question: "과장의 월 기본급은 얼마인가?"
+  type: single
+  relevant_sources: ["급여_규정.md"]
+  answer_keywords: ["420"]
+  reference_answer: "월 420만원."
+
+# ── 다중 홉 (multi) ─────────────────────────────────
+- question: "연차를 사용하려면 어떤 양식을 작성해야 하나?"
+  type: multi
+  relevant_sources: ["연차_규정.md", "문서양식_안내.md"]
+  answer_keywords: ["휴가신청서"]
+  reference_answer: "휴가신청서(F-101)를 작성해 팀장 승인을 받는다."
+
+- question: "본인 결혼 시 받는 경조금과 경조사 휴가 일수는?"
+  type: multi
+  relevant_sources: ["복지_규정.md", "휴가_규정.md"]
+  answer_keywords: ["50만원", "5일"]
+  reference_answer: "경조금 50만원, 휴가 5일."
+
+- question: "복지 포인트는 1년에 얼마이며 어떻게 정산하나?"
+  type: multi
+  relevant_sources: ["복지_규정.md", "경비_규정.md"]
+  answer_keywords: ["60만원"]
+  reference_answer: "연 60만원, 경비 규정의 복지비 정산 절차로 처리."
+
+- question: "경비는 매월 언제 마감되고 언제 지급되나?"
+  type: multi
+  relevant_sources: ["경비_규정.md", "부서_일정.md"]
+  answer_keywords: ["25일", "10일"]
+  reference_answer: "매월 25일 마감, 익월 10일 지급."
+
+- question: "주간업무보고서는 언제까지 제출하나?"
+  type: multi
+  relevant_sources: ["보고서_양식_가이드.md", "부서_일정.md"]
+  answer_keywords: ["금요일"]
+  reference_answer: "매주 금요일 16시까지."
+
+- question: "새 장비를 구매하려면 어떤 양식을 작성해야 하나?"
+  type: multi
+  relevant_sources: ["장비_장부.md", "문서양식_안내.md"]
+  answer_keywords: ["구매요청서"]
+  reference_answer: "구매요청서(F-203)를 작성한다."
+
+- question: "신입사원과 일반 사원의 교육은 어떻게 다른가?"
+  type: multi
+  relevant_sources: ["신입사원_온보딩.md", "직원_직무교육.md"]
+  answer_keywords: ["온보딩", "직무교육"]
+  reference_answer: "신입은 온보딩(EDU-001) 필수, 재직 사원은 직무교육(EDU-002) 이수."
+
+- question: "채용된 신입사원은 입사 후 어떤 교육을 받나?"
+  type: multi
+  relevant_sources: ["채용_규정.md", "신입사원_온보딩.md"]
+  answer_keywords: ["온보딩"]
+  reference_answer: "입사 후 신입사원 온보딩 교육을 받고 수습 3개월을 거친다."
+
+- question: "출장을 다녀온 후 며칠 이내에 무엇을 제출해야 하나?"
+  type: multi
+  relevant_sources: ["출장_규정.md", "보고서_양식_가이드.md"]
+  answer_keywords: ["출장보고서", "3일"]
+  reference_answer: "종료 후 3일 이내에 출장보고서를 제출한다."
+
+- question: "신사업개발부 GPU 서버의 보안은 어떻게 관리되나?"
+  type: multi
+  relevant_sources: ["정보보안_규정.md", "장비_장부.md"]
+  answer_keywords: ["백업"]
+  reference_answer: "별도의 접근 통제와 백업 절차를 적용한다."
+
+- question: "2025년 농업사업부의 사업 계획은 무엇인가?"
+  type: multi
+  relevant_sources: ["2025_사업계획.md", "장비_장부.md"]
+  answer_keywords: ["스마트팜"]
+  reference_answer: "재배 작물 확대와 스마트팜 설비 도입, 영농 인력 충원."
+
+# ── 관계·인과 (relational) ──────────────────────────
+- question: "연차 유급휴가의 법적 근거는 무엇인가?"
+  type: relational
+  relevant_sources: ["연차_규정.md", "복지_관련_법률.md"]
+  answer_keywords: ["근로기준법"]
+  reference_answer: "근로기준법 제60조."
+
+- question: "과장으로 승진하려면 어떤 교육을 이수해야 하나?"
+  type: relational
+  relevant_sources: ["인사평가_승진_규정.md", "직원_직무교육.md"]
+  answer_keywords: ["리더십"]
+  reference_answer: "중간관리자 리더십 과정을 이수해야 한다."
+
+- question: "인사평가 결과는 급여에 어떻게 반영되나?"
+  type: relational
+  relevant_sources: ["인사평가_승진_규정.md", "급여_규정.md"]
+  answer_keywords: ["성과급"]
+  reference_answer: "다음 해 기본급 인상률과 성과급에 반영된다."
+
+- question: "미사용 연차는 어떻게 보상되나?"
+  type: relational
+  relevant_sources: ["급여_규정.md", "복지_규정.md"]
+  answer_keywords: ["통상임금"]
+  reference_answer: "통상임금 기준으로 환산하여 연말 급여에 포함해 지급한다."
+
+# ── 요일·시간 규칙 (교차 오염 테스트) ──────────────
+- question: "금요일에 입사한 직원은 언제까지 급여 계좌와 증빙 서류를 제출해야 하나?"
+  type: relational
+  relevant_sources: ["채용_규정.md", "급여_규정.md"]
+  answer_keywords: ["월요일"]
+  reference_answer: "다음 주 월요일까지 제출해야 한다."
+
+- question: "급여 지급일인 25일이 토요일이면 언제 지급되나?"
+  type: single
+  relevant_sources: ["급여_규정.md"]
+  answer_keywords: ["직전 영업일"]
+  reference_answer: "직전 영업일(직전 금요일)에 지급한다."
+
+- question: "월요일에 연차를 사용하려면 언제까지 신청해야 하나?"
+  type: single
+  relevant_sources: ["연차_규정.md"]
+  answer_keywords: ["목요일"]
+  reference_answer: "직전 주 목요일까지 신청해야 한다."
+
+- question: "경비 청구 마감 시간은 언제인가?"
+  type: single
+  relevant_sources: ["경비_규정.md"]
+  answer_keywords: ["오후 6시"]
+  reference_answer: "매월 25일 오후 6시."
+
+# ── 인수인계 ───────────────────────────────────────
+- question: "퇴직 시 인수인계서는 언제까지 제출해야 하나?"
+  type: single
+  relevant_sources: ["인수인계_규정.md"]
+  answer_keywords: ["3일"]
+  reference_answer: "마지막 근무일 3일 전까지 제출한다."
+
+- question: "인수인계 시 보유 장비와 시스템 계정은 어떻게 처리되나?"
+  type: multi
+  relevant_sources: ["인수인계_규정.md", "장비_장부.md", "정보보안_규정.md"]
+  answer_keywords: ["반납", "권한"]
+  reference_answer: "장비는 장부에 따라 반납하고, 정보보안 규정에 따라 계정·접근 권한을 회수한다."
+
+# ── 전역·종합형 (global, sensemaking) ───────────────────────────
+# GraphRAG가 강점을 보이는 유형. 정답 근거가 넓어 recall@k 부적합 → relevant_sources 비움.
+# 채점은 LLM-judge(--judge)와 answer_keywords 로 한다(종합성·핵심개념 포함 여부).
+- question: "하울의 세 사업부는 각각 어떤 프로젝트를 추진하고 있나?"
+  type: global
+  relevant_sources: []
+  answer_keywords: ["농업사업부", "인력사업부", "신사업개발부"]
+  reference_answer: "농업사업부는 스마트팜·유기농·콩 재배 자동화 등, 인력사업부는 파견 플랫폼·교육 개편·채용 자동화 등, 신사업개발부는 데이터 분석·AI 추천·모바일 앱 등을 추진한다."
+
+- question: "전사적으로 예산과 경비는 어떤 규정과 일정에 따라 관리되나?"
+  type: global
+  relevant_sources: []
+  answer_keywords: ["경비 처리 규정", "25일"]
+  reference_answer: "경비 처리 규정에 따라 매월 25일 마감·익월 10일 지급하며, 일정은 부서 일정을 따른다."
+
+- question: "하울의 인력 운영(채용·교육·평가·인수인계)은 전체적으로 어떻게 이어지나?"
+  type: global
+  relevant_sources: []
+  answer_keywords: ["채용", "온보딩", "직무교육", "인사평가"]
+  reference_answer: "채용 후 온보딩 교육, 재직 중 직무교육과 인사평가·승진, 퇴직·이동 시 인수인계로 이어진다."
+
+- question: "신사업개발부의 활동과 사용 장비의 특징을 종합하면?"
+  type: global
+  relevant_sources: []
+  answer_keywords: ["GPU 서버", "데이터"]
+  reference_answer: "데이터 분석·AI·모바일 등 기술 프로젝트를 추진하며 GPU 서버·개발용 노트북을 주로 사용한다."
+
+- question: "하울의 복지와 휴가 제도 전반의 특징을 요약하면?"
+  type: global
+  relevant_sources: []
+  answer_keywords: ["연차", "복지 포인트", "경조"]
+  reference_answer: "연차·경조사 휴가, 경조금, 연 60만원 복지 포인트, 미사용 연차 보상 등을 운영한다."
+
+- question: "회사의 정보보안과 자산 관리는 어떻게 연결되어 운영되나?"
+  type: global
+  relevant_sources: []
+  answer_keywords: ["장비", "권한", "백업"]
+  reference_answer: "장비 장부로 자산을 관리하고, 정보보안 규정으로 장비·계정의 접근 통제와 백업을 적용한다."
+
+- question: "하울에서 신입사원이 입사해 정착하기까지의 과정은?"
+  type: global
+  relevant_sources: []
+  answer_keywords: ["온보딩", "수습", "멘토"]
+  reference_answer: "채용 후 온보딩 교육과 수습 3개월, 멘토 배정을 거쳐 부서에 정식 배치된다."
+
+- question: "사업부별 인력 구성과 프로젝트 참여에는 어떤 경향이 있나?"
+  type: global
+  relevant_sources: []
+  answer_keywords: ["부서", "프로젝트", "직급"]
+  reference_answer: "각 사업부는 부서장 아래 직급별 인력으로 구성되며, 구성원이 부서 프로젝트에 참여한다."

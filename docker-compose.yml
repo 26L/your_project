@@ -1,0 +1,28 @@
+# Neo4j 그래프 저장소 — GraphRAG 계열(문서참조/커뮤니티/PageRank)용.
+# 실행:  docker compose up -d      중지:  docker compose down
+# 브라우저: http://localhost:7474  (neo4j / ragbench123)  · Bolt: bolt://localhost:7687
+# 플러그인: APOC(유틸) + Graph Data Science(Louvain 커뮤니티·PageRank — HippoRAG2/L5용)
+services:
+  neo4j:
+    image: neo4j:5-community
+    container_name: ragbench-neo4j
+    ports:
+      - "7474:7474"   # HTTP (Neo4j Browser)
+      - "7687:7687"   # Bolt (드라이버 연결)
+    environment:
+      NEO4J_AUTH: neo4j/ragbench123
+      NEO4J_PLUGINS: '["apoc","graph-data-science"]'
+      NEO4J_server_memory_heap_max__size: 1G
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*,gds.*
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  neo4j-data:
+  neo4j-logs:

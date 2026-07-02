@@ -1,0 +1,341 @@
+"""GraphRAG (로컬 E2B) — 작은 로컬 모델의 '산문 생성' 강점으로 그래프를 만든다.
+
+핵심 아이디어: 작은 모델(gemma E2B 등)은 엄격한 JSON 구조화 추출엔 실패하지만,
+자유 산문 "이름 | 유형 | 설명" 형식은 잘 만든다. 그 산문을 결정론적으로 파싱해
+EntityNode(설명 포함) + Relation 으로 변환한다. → 로컬·무료·rate limit 없음 +
+description 채워진 타입 노드.
+"""
+from __future__ import annotations
+
+import asyncio
+import os
+import re
+from typing import Any, Sequence
+
+from .graphrag import GraphRAG
+
+_TYPES = "직원/부서/프로젝트/규정/양식/장비/회의/법령/직급/개념"
+
+PROMPT = (
+    "아래 사내 문서에서 핵심 엔티티와 그 사이의 관계를 추출하라. "
+    "반드시 아래 형식으로만 출력하고, 다른 설명 문장은 쓰지 마라.\n\n"
+    "[엔티티]\n"
+    f"이름 | 유형 | 한 줄 설명\n(유형은 다음 중 하나: {_TYPES})\n\n"
+    "[관계]\n"
+    "출발엔티티 | 관계 | 도착엔티티\n\n"
+    "문서:\n{text}\n"
+)
+
+
+_DOMAIN_TYPES = {"직원", "부서", "프로젝트", "규정", "양식", "장비", "회의", "법령", "직급", "개념", "회사"}
+# 영어 폴백/무라벨 엔티티를 이름 접미사로 재분류 (긴 접미사 우선)
+_TYPE_SUFFIX = [
+    ("인수인계서", "양식"), ("신청서", "양식"), ("보고서", "양식"), ("청구서", "양식"),
+    ("계획서", "양식"), ("명세서", "양식"), ("현황", "양식"), ("통계", "양식"),
+    ("규정", "규정"), ("지침", "규정"), ("법률", "법령"), ("법", "법령"),
+]
+# 관계어미가 엔티티 타입으로 샌 경우 → 올바른 타입
+_TYPE_REMAP = {"소속": "직원", "배치부서": "부서", "부서장": "직급"}
+# 관계 라벨 표면형 통합(어미 정리로 안 잡히는 특수형만)
+_REL_REMAP = {
+    "따른다": "따름", "따라 환산": "따름", "따라 지급": "지급", "따라 제출": "제출",
+    "따라 정산한다": "정산", "따라 정산": "정산", "준용": "따름", "준수": "따름",
+    "근거 제공": "근거", "기반으로 함": "근거", "기초 자료": "근거", "제출한다": "제출",
+}
+
+
+def normalize_name(name: str) -> str:
+    """엔티티 이름 정규화(L2 병합용): 인용괄호·따옴표 제거 → 「복지 규정」=복지 규정.
+    같은 이름이 되면 LlamaIndex가 id(=name) 기준으로 자동 병합한다."""
+    name = (name or "").strip()
+    name = re.sub(r"^[「『“\"'\[\(《]+|[」』”\"'\]\)》]+$", "", name).strip()
+    return name
+
+
+def normalize_type(name: str, typ: str) -> str:
+    """엔티티 타입 정규화(결정론적). 도메인 타입은 유지, 오분류는 규칙으로 교정."""
+    typ = (typ or "").strip()
+    if typ in _TYPE_REMAP:
+        return _TYPE_REMAP[typ]
+    if typ in _DOMAIN_TYPES:
+        return typ
+    # 영어 'entity'/무라벨/기타 → 이름 접미사로 재분류, 없으면 개념
+    for suf, t in _TYPE_SUFFIX:
+        if name.endswith(suf):
+            return t
+    return "개념"
+
+
+def normalize_rel(label: str) -> str:
+    """관계 라벨 정규화: 표면형 통합 + 흔한 어미(함/됨/한다/받음) 제거."""
+    label = (label or "").strip()
+    if label in _REL_REMAP:
+        return _REL_REMAP[label]
+    # 어미 제거는 남는 어근이 2글자 이상일 때만(예: 포함→포 방지, 포함함→포함 허용).
+    for suf in ("한다", "받음", "됨", "함"):
+        if label.endswith(suf) and len(label) - len(suf) >= 2:
+            return label[: -len(suf)]
+    return label
+
+
+def parse_extraction(resp: str):
+    """E2B 산문 출력 → (entities, relations). entities=(이름,유형,설명), relations=(출발,관계,도착)."""
+    ents, rels = [], []
+    section = None
+    for raw in resp.splitlines():
+        s = raw.strip().lstrip("*-•·>").strip()
+        if not s:
+            continue
+        low = s.replace(" ", "")
+        if "[엔티티]" in low or low.startswith("엔티티"):
+            section = "e"
+            continue
+        if "[관계]" in low or low.startswith("관계"):
+            section = "r"
+            continue
+        if "|" not in s:
+            continue
+        parts = [p.strip() for p in s.split("|")]
+        if section == "e" and len(parts) >= 2:
+            name = parts[0]
+            typ = parts[1] or "개념"
+            desc = parts[2] if len(parts) >= 3 else ""
+            if name:
+                ents.append((name, typ, desc))
+        elif section == "r" and len(parts) == 3 and all(parts):
+            rels.append((parts[0], parts[1], parts[2]))
+    return ents, rels
+
+
+class GraphRAGE2B(GraphRAG):
+    name = "graphrag_e2b"
+
+    # 재순위: 그래프에서 후보를 넉넉히(top_k×5, ≥20) 가져와 아래 재랭커로 top_k 재정렬.
+    _RETRIEVE_MULT = 5
+    _RETRIEVE_MIN = 20
+
+    def _extractor(self) -> Any:
+        return _E2BExtractor(llm=self.llm, num_workers=1)
+
+    def _make_engine(self) -> Any:
+        import nest_asyncio  # 그래프 검색기의 중첩 async 허용
+
+        nest_asyncio.apply()
+        pool = max(self.cfg.top_k * self._RETRIEVE_MULT, self._RETRIEVE_MIN)
+        reranker = _E5Rerank(embed_model=self.embed_model, top_n=self.cfg.top_k)
+        return self._index.as_query_engine(
+            similarity_top_k=pool,
+            node_postprocessors=[reranker],
+            llm=self._big_llm(),
+        )
+
+
+class GraphRAGE2BL5(GraphRAGE2B):
+    """graphrag_e2b + L5 커뮤니티 요약 주입 — 전역(global) 강화.
+
+    질의 시 그래프 검색(재순위) 결과에, 질의와 유사한 '커뮤니티 요약'(압축된 breadth)을
+    top-N 붙여 synthesis에 함께 넣는다. 온디바이스 컨텍스트 제약에서 global을 살리는 압축 전략.
+    사전: scripts/build_community_summaries.py 로 community_summaries.json 생성.
+    """
+
+    name = "graphrag_e2b_l5"
+    _TOP_COMMUNITY = 3
+    _summaries = None  # [(summary_text, embedding)]
+
+    def __init__(self, cfg: Any, llm: Any, embed_model: Any):
+        super().__init__(cfg, llm, embed_model)
+        # L5는 재추출 없이 graphrag_e2b 그래프 + community_summaries.json 재사용.
+        self.persist_dir = os.path.join(cfg.storage_dir, "graphrag_e2b")
+
+    def _load_summaries(self) -> Any:
+        if self._summaries is not None:
+            return self._summaries
+        import json
+        path = os.path.join(self.persist_dir, "community_summaries.json")
+        if not os.path.exists(path):
+            self._summaries = []
+            return self._summaries
+        data = json.load(open(path))
+        texts = [d["summary"] for d in data if d.get("summary")]
+        embs = self.embed_model.get_text_embedding_batch(texts) if texts else []
+        self._summaries = list(zip(texts, embs))
+        return self._summaries
+
+    def _make_engine(self) -> Any:
+        import nest_asyncio
+
+        nest_asyncio.apply()
+        from llama_index.core.query_engine import RetrieverQueryEngine
+
+        pool = max(self.cfg.top_k * self._RETRIEVE_MULT, self._RETRIEVE_MIN)
+        base = self._index.as_retriever(similarity_top_k=pool)
+        reranker = _E5Rerank(embed_model=self.embed_model, top_n=self.cfg.top_k)
+        retriever = _GraphCommunityRetriever(
+            base=base,
+            reranker=reranker,
+            embed_model=self.embed_model,
+            summaries=self._load_summaries(),
+            top_comm=self._TOP_COMMUNITY,
+        )
+        return RetrieverQueryEngine.from_args(retriever, llm=self._big_llm())
+
+
+def _build_community_retriever_cls():
+    """그래프 검색(재순위) + 커뮤니티 요약 주입을 합치는 커스텀 retriever."""
+    import math
+
+    from llama_index.core.retrievers import BaseRetriever
+    from llama_index.core.schema import NodeWithScore, TextNode
+
+    def _cos(a, b):
+        s = sum(x * y for x, y in zip(a, b))
+        na = math.sqrt(sum(x * x for x in a))
+        nb = math.sqrt(sum(y * y for y in b))
+        return s / (na * nb + 1e-9)
+
+    class GraphCommunityRetriever(BaseRetriever):
+        def __init__(self, base, reranker, embed_model, summaries, top_comm=3):
+            self._base = base
+            self._rr = reranker
+            self._em = embed_model
+            self._summaries = summaries
+            self._top = top_comm
+            super().__init__()
+
+        def _retrieve(self, query_bundle):
+            nodes = self._base.retrieve(query_bundle)
+            nodes = self._rr.postprocess_nodes(nodes, query_bundle=query_bundle)
+            if self._summaries:
+                q = self._em.get_query_embedding(query_bundle.query_str)
+                scored = sorted(
+                    ((_cos(q, e), t) for t, e in self._summaries),
+                    key=lambda x: x[0],
+                    reverse=True,
+                )
+                for sc, txt in scored[: self._top]:
+                    nodes.append(
+                        NodeWithScore(node=TextNode(text="[커뮤니티 요약] " + txt), score=float(sc))
+                    )
+            return nodes
+
+    return GraphCommunityRetriever
+
+
+def _build_reranker_cls():
+    """질의-노드 e5 유사도로 재순위하는 node postprocessor(로컬 임베딩 재활용)."""
+    import math
+
+    from llama_index.core.postprocessor.types import BaseNodePostprocessor
+    from llama_index.core.schema import MetadataMode
+
+    class E5Rerank(BaseNodePostprocessor):
+        embed_model: Any
+        top_n: int = 4
+
+        @classmethod
+        def class_name(cls) -> str:
+            return "E5Rerank"
+
+        def _postprocess_nodes(self, nodes, query_bundle=None):
+            if not nodes or query_bundle is None:
+                return nodes[: self.top_n]
+            q = self.embed_model.get_query_embedding(query_bundle.query_str)
+
+            def cos(a, b):
+                s = sum(x * y for x, y in zip(a, b))
+                na = math.sqrt(sum(x * x for x in a))
+                nb = math.sqrt(sum(y * y for y in b))
+                return s / (na * nb + 1e-9)
+
+            texts = [nw.node.get_content(metadata_mode=MetadataMode.NONE) or "" for nw in nodes]
+            embs = self.embed_model.get_text_embedding_batch(
+                [t if t.strip() else " " for t in texts]
+            )
+            for nw, t, e in zip(nodes, texts, embs):
+                nw.score = cos(q, e) if t.strip() else -1.0
+            nodes = sorted(nodes, key=lambda n: (n.score if n.score is not None else -1.0), reverse=True)
+            return nodes[: self.top_n]
+
+    return E5Rerank
+
+
+def _build_extractor_cls():
+    """런타임에 TransformComponent 서브클래스를 만든다(상위 import 순서 의존 회피)."""
+    from llama_index.core.async_utils import run_jobs
+    from llama_index.core.graph_stores.types import (
+        EntityNode,
+        Relation,
+        KG_NODES_KEY,
+        KG_RELATIONS_KEY,
+    )
+    from llama_index.core.llms.llm import LLM
+    from llama_index.core.schema import BaseNode, MetadataMode, TransformComponent
+
+    class E2BExtractor(TransformComponent):
+        llm: LLM
+        num_workers: int = 1
+
+        @classmethod
+        def class_name(cls) -> str:
+            return "E2BPathExtractor"
+
+        def __call__(self, nodes, show_progress: bool = False, **kwargs):
+            return asyncio.run(self.acall(nodes, show_progress=show_progress, **kwargs))
+
+        async def _aextract(self, node: BaseNode) -> BaseNode:
+            # 청크(≤1024토큰) 전체를 추출에 넣도록 여유 있게(이전 2000자 절단이 긴 청크 손실).
+            text = node.get_content(metadata_mode=MetadataMode.LLM)[:4000]
+            try:
+                resp = await self.llm.acomplete(PROMPT.format(text=text))
+                ents, rels = parse_extraction(str(resp))
+            except Exception:
+                ents, rels = [], []
+
+            kg_nodes = node.metadata.pop(KG_NODES_KEY, [])
+            kg_rels = node.metadata.pop(KG_RELATIONS_KEY, [])
+            meta = node.metadata.copy()
+
+            name2node = {}
+            for name0, typ, desc in ents:
+                name = normalize_name(name0)
+                if not name:
+                    continue
+                en = EntityNode(
+                    name=name,
+                    label=normalize_type(name, typ),
+                    properties={**meta, "description": desc},
+                )
+                name2node[name] = en
+                kg_nodes.append(en)
+            for src0, rel0, tgt0 in rels:
+                src, tgt = normalize_name(src0), normalize_name(tgt0)
+                if not src or not tgt:
+                    continue
+                rel = normalize_rel(rel0)
+                sn = name2node.get(src)
+                if sn is None:
+                    # 관계에만 등장하는 노드: 기본 라벨 'entity' 대신 타입 정규화 적용.
+                    sn = EntityNode(name=src, label=normalize_type(src, ""), properties=meta)
+                    name2node[src] = sn
+                    kg_nodes.append(sn)
+                tn = name2node.get(tgt)
+                if tn is None:
+                    tn = EntityNode(name=tgt, label=normalize_type(tgt, ""), properties=meta)
+                    name2node[tgt] = tn
+                    kg_nodes.append(tn)
+                kg_rels.append(Relation(label=rel, source_id=sn.id, target_id=tn.id, properties=meta))
+
+            node.metadata[KG_NODES_KEY] = kg_nodes
+            node.metadata[KG_RELATIONS_KEY] = kg_rels
+            return node
+
+        async def acall(self, nodes, show_progress: bool = False, **kwargs):
+            jobs = [self._aextract(n) for n in nodes]
+            return await run_jobs(jobs, workers=self.num_workers, show_progress=show_progress, desc="E2B 추출")
+
+    return E2BExtractor
+
+
+_E2BExtractor = _build_extractor_cls()
+_E5Rerank = _build_reranker_cls()
+_GraphCommunityRetriever = _build_community_retriever_cls()
