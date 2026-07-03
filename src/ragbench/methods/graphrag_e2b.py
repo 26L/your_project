@@ -1,9 +1,19 @@
-"""GraphRAG (로컬 E2B) — 작은 로컬 모델의 '산문 생성' 강점으로 그래프를 만든다.
+"""GraphRAG (E2B 계열) — 산문 추출 그래프 + 단계적 검색 개선.
 
-핵심 아이디어: 작은 모델(gemma E2B 등)은 엄격한 JSON 구조화 추출엔 실패하지만,
+추출 아이디어: 작은 모델(gemma E2B 등)은 엄격한 JSON 구조화 추출엔 실패하지만,
 자유 산문 "이름 | 유형 | 설명" 형식은 잘 만든다. 그 산문을 결정론적으로 파싱해
-EntityNode(설명 포함) + Relation 으로 변환한다. → 로컬·무료·rate limit 없음 +
-description 채워진 타입 노드.
+EntityNode(설명 포함) + Relation 으로 변환한다. Gemini 등 강한 모델로 교체하면
+description 채움률·타입 정확도가 오른다(추출 LLM은 config로 교체).
+
+기법 계열(같은 그래프, 검색만 다름 — registry.py에서 선택):
+- GraphRAGE2B         : 그래프 검색 + E5Rerank 재순위 (기준)
+- GraphRAGE2BL5       : 위 + 커뮤니티 요약 주입(전역 강화)
+- GraphRAGE2BAdaptive : 위 + 질의 유형 라우팅(global→요약 / specific→재순위만)
+- GraphRAGE2BHybrid   : ★ 그래프 검색 + 직접 청크 벡터검색 RRF 융합
+
+검증 결론(CLAUDE.md §10.5): 그래프의 저성능은 방법론의 구조적 한계가 아니라
+① E5Rerank 임베딩 버그(아래 clean() 참고) + ② 단일 검색 기법이었다. Hybrid로
+그래프+벡터를 융합하니 judge 0.333→0.806으로 평면 정밀도를 따라잡았다.
 """
 from __future__ import annotations
 
