@@ -144,6 +144,7 @@ docs/           # 설계·논문정리·작업 타임라인
 
 ## 📄 더 보기
 
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — **코드 지도**(무슨 코드가 어디, X 고치려면 어디)
 - [`CLAUDE.md`](CLAUDE.md) — 설계 방향·규칙·전체 결과 정리
 - [`docs/WORKLOG.md`](docs/WORKLOG.md) — 작업 타임라인
 - [`docs/graph_quality_design.md`](docs/graph_quality_design.md) — 그래프 품질 개선 설계(L1~L5)
