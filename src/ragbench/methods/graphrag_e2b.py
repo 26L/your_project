@@ -89,13 +89,15 @@ def normalize_rel(label: str) -> str:
 
 
 _ROUTER_PROMPT = (
-    "다음 질문을 두 유형 중 하나로 분류하라.\n"
-    "- global: 회사 전체·여러 부서·여러 문서를 아우르는 개괄·요약·종합 질문. "
-    "'전사/전체/각각/여러/주요/전반적으로/어떻게 이어지나' 같은 신호가 있으면 global.\n"
-    "  예: '세 사업부는 각각 어떤 프로젝트를 하나', '전사적으로 예산은 어떻게 관리되나', '주요 활동은'\n"
-    "- specific: 특정 규정·수치·인물·양식 하나를 콕 집어 묻는 질문.\n"
-    "  예: '연차는 며칠인가', '휴가신청서 번호는', 'X 규정의 마감일은'\n"
-    "반드시 한 단어로만 답하라: global 또는 specific\n\n질문: {q}\n답:"
+    "질문에 답하려면 '넓은 종합(breadth)'이 필요한지, '특정 사실(pinpoint)'이면 되는지 판단하라.\n"
+    "- breadth: 여러 문서·여러 사실·여러 대상을 연결·종합해야 답하는 질문. "
+    "다중 홉(A를 알려면 B·C를 거침), 전역·개괄·종합형이 여기 속한다. "
+    "'전사/전체/각각/여러/주요/전반적으로/어떻게 이어지나' 신호가 있으면 breadth.\n"
+    "  예: '세 사업부는 각각 무엇을 하나', '전사적으로 예산은 어떻게 관리되나', "
+    "'연차를 쓰려면 어떤 양식을 작성해 누구 승인을 받나'\n"
+    "- pinpoint: 특정 문서 하나의 사실·수치·규정·관계를 콕 집는 질문.\n"
+    "  예: '연차는 며칠인가', 'X의 법적 근거는', '휴가신청서 번호는'\n"
+    "반드시 한 단어로만 답하라: breadth 또는 pinpoint\n\n질문: {q}\n답:"
 )
 
 
@@ -307,15 +309,16 @@ def _build_community_retriever_cls():
                 return True
             try:
                 resp = str(self._router.complete(_ROUTER_PROMPT.format(q=query_str))).strip().lower()
-                # 장황한 응답("specific (not global)" 등) 대비: 두 라벨의 첫 등장 위치로 판정.
-                g, s = resp.find("global"), resp.find("specific")
-                if g == -1:
-                    return False  # global 언급 없음 → specific(주입 안 함)
-                if s == -1:
+                # multi+global=breadth(주입) / single+relational=pinpoint(재순위만).
+                # 장황한 응답 대비 두 라벨의 첫 등장 위치로 판정.
+                b, p = resp.find("breadth"), resp.find("pinpoint")
+                if b == -1:
+                    return False  # breadth 언급 없음 → pinpoint(주입 안 함)
+                if p == -1:
                     return True
-                return g < s  # 먼저 나온 라벨 채택
+                return b < p  # 먼저 나온 라벨 채택
             except Exception:
-                return True  # 분류 실패 시 안전하게 주입(전역 breadth)
+                return True  # 분류 실패 시 안전하게 주입(breadth)
 
         def _retrieve(self, query_bundle):
             nodes = self._base.retrieve(query_bundle)
