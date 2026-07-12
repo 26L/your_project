@@ -1,0 +1,15 @@
+# HotpotQA(공개 다중홉 벤치) 검증용 — 평면검색 3종. 영어 코퍼스.
+llm:
+  provider: google
+  model: gemini-2.5-flash
+  temperature: 0.1
+  max_tokens: 4096
+  thinking: false
+embed:
+  provider: local
+  model: intfloat/multilingual-e5-small
+chunk_size: 1024
+chunk_overlap: 64
+top_k: 4
+data_dir: data/hotpot
+storage_dir: storage_hotpot
