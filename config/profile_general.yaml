@@ -1,0 +1,19 @@
+# 범용 프로필 — 일반 QA(핀포인트/다중홉). 추천 기법: hybrid
+# 근거: 내부 매트릭스 judge 0.806(공동1위)·최고속(1.3s)·그래프 추출 불필요,
+#       외부 HotpotQA에서도 평면과 동률. 도메인 로버스트.
+# 사용:  ragbench index --method hybrid --config config/profile_general.yaml --data <corpus>
+#        ragbench eval  --method hybrid --config config/profile_general.yaml --eval-set <set> --judge
+llm:
+  provider: google
+  model: gemini-2.5-flash
+  temperature: 0.1
+  max_tokens: 4096
+  thinking: false
+embed:
+  provider: local
+  model: intfloat/multilingual-e5-small
+chunk_size: 512
+chunk_overlap: 64
+top_k: 4
+data_dir: data/company
+storage_dir: storage

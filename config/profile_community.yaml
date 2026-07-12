@@ -1,0 +1,25 @@
+# 커뮤니티(조직 특화) 프로필 — 특정 조직/커뮤니티의 연결된 문서.
+# 연결성·global·종합형 질의에 그래프의 강점을 살린다. 그래프 추출 필요(비용/시간↑).
+# 추천 기법:
+#   · graphrag_e2b_hybrid  (기본) — 그래프+직접벡터. 핀포인트 유지 + 연결성. 내부 judge 0.806.
+#   · graphrag_e2b_adaptive       — global·종합형 비중 크면. 커뮤니티 요약 라우팅(global→요약 주입).
+# 근거: global 유형에서 그래프 계열 역전(0.375 > 평면 0.25), 외부 다중홉서 평면과 동급.
+#       단 §10.9 — 조직 문서가 자동생성 near-duplicate면 연결성 이득이 준다(실문서 권장).
+# 사용:  ragbench index --method graphrag_e2b --config config/profile_community.yaml --data <corpus>
+#        python scripts/build_community_summaries.py config/profile_community.yaml storage/graphrag_e2b
+#        ragbench eval --method graphrag_e2b_hybrid --config config/profile_community.yaml --eval-set <set> --judge
+llm:
+  provider: google
+  model: gemini-2.5-flash
+  temperature: 0.1
+  max_tokens: 8192   # 그래프 추출·합성은 출력이 길어 여유 필요(작으면 MAX_TOKENS)
+  thinking: false
+embed:
+  provider: local
+  model: intfloat/multilingual-e5-small
+chunk_size: 1024
+chunk_overlap: 64
+top_k: 6            # 연결성·종합형은 더 넓은 컨텍스트가 유리
+data_dir: data/company
+storage_dir: storage
+extract_lang: ko    # 조직 문서 언어. 영어 코퍼스면 en.
