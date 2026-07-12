@@ -32,6 +32,7 @@ class Config:
     top_k: int = 4
     data_dir: str = "data"
     storage_dir: str = "storage"
+    extract_lang: str = "ko"  # 그래프 추출 프롬프트 언어("ko" 사내도메인 / "en" 범용). 외부벤치용.
 
     @classmethod
     def load(cls, path: str | None = None) -> "Config":

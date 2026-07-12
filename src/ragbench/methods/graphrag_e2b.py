@@ -36,6 +36,19 @@ PROMPT = (
     "문서:\n{text}\n"
 )
 
+# 영어/범용 도메인용(외부벤치 HotpotQA 등). 섹션 마커는 파서 호환 위해 한국어 유지,
+# 지시문·유형만 영어/범용으로 — 추출 알고리즘·모델·파서는 동일(§동일조건).
+PROMPT_EN = (
+    "Extract the key entities and the relations between them from the document below. "
+    "Output ONLY in the exact format below, with no other explanatory text.\n\n"
+    "[엔티티]\n"
+    "name | type | one-line description\n"
+    "(type is one of: person/place/organization/work/event/group/date/concept)\n\n"
+    "[관계]\n"
+    "source_entity | relation | target_entity\n\n"
+    "문서:\n{text}\n"
+)
+
 
 _DOMAIN_TYPES = {"직원", "부서", "프로젝트", "규정", "양식", "장비", "회의", "법령", "직급", "개념", "회사"}
 # 영어 폴백/무라벨 엔티티를 이름 접미사로 재분류 (긴 접미사 우선)
@@ -138,7 +151,8 @@ class GraphRAGE2B(GraphRAG):
     _RETRIEVE_MIN = 20
 
     def _extractor(self) -> Any:
-        return _E2BExtractor(llm=self.llm, num_workers=1)
+        prompt = PROMPT_EN if getattr(self.cfg, "extract_lang", "ko") == "en" else PROMPT
+        return _E2BExtractor(llm=self.llm, num_workers=1, prompt=prompt)
 
     def _make_engine(self) -> Any:
         import nest_asyncio  # 그래프 검색기의 중첩 async 허용
@@ -407,6 +421,7 @@ def _build_extractor_cls():
     class E2BExtractor(TransformComponent):
         llm: LLM
         num_workers: int = 1
+        prompt: str = PROMPT
 
         @classmethod
         def class_name(cls) -> str:
@@ -419,7 +434,7 @@ def _build_extractor_cls():
             # 청크(≤1024토큰) 전체를 추출에 넣도록 여유 있게(이전 2000자 절단이 긴 청크 손실).
             text = node.get_content(metadata_mode=MetadataMode.LLM)[:4000]
             try:
-                resp = await self.llm.acomplete(PROMPT.format(text=text))
+                resp = await self.llm.acomplete(self.prompt.format(text=text))
                 ents, rels = parse_extraction(str(resp))
             except Exception:
                 ents, rels = [], []
