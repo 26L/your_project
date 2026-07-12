@@ -408,6 +408,26 @@ cp .env.example .env   # GEMINI_API_KEY 채우기 (GOOGLE_API_KEY 도 인식)
 - **H3 영문 벤치 자체 — ❌ 기각.** 영어가 쉬웠다면 평면도 올라야 하나 **평면은 하락**(standard 0.78→0.69), 그래프만 상승. **손작성 한국어 TTR(0.379) > 영어(0.345)** → 언어가 아니라 문서의 진짜성·다양성이 관건.
 - **★ 함의(정직).** 내부 벤치 타당성이 **부분적으로 흔들림** — §10.2 "이상적 상한값"을 넘어 **코퍼스 88%가 저품질 자동생성 near-duplicate**라는 하드넘버 확보. 내부 수치는 방법 차이 + **코퍼스 아티팩트**가 섞임. 단 손작성 25개는 고품질(TTR 0.379>HotpotQA)이라 균일하게 나쁘진 않음. **→ 실무 결론은 외부(HotpotQA)·손작성 위주로 신뢰**, 자동생성 대량분은 참고용. 후속: 생성 코퍼스 품질 개선(다양화·중복 제거) 또는 공개벤치 비중↑.
 
+### 10.10 HippoRAG2 통합·평가 — 성숙한 그래프RAG는 최상위 (2026-07-12)
+> §2 로드맵의 다음 기법. 공식 `hipporag`(OpenIE 지식그래프 + **Personalized PageRank**, arXiv 2502.14802)을 얇은 어댑터([methods/hipporag.py](src/ragbench/methods/hipporag.py))로 통합. §7 준수: PPR·OpenIE 재구현 없이 공식 구현 사용.
+
+**검증 충실(임베딩 통제)**: 다른 기법이 전부 로컬 e5라, HippoRAG도 e5로 통일 — e5를 **OpenAI호환 서버**([scripts/e5_openai_server.py](scripts/e5_openai_server.py))로 감싸(다른 기법과 **완전 동일 벡터**) 연결. 생성·judge도 Gemini 동일 → **PPR 검색만 변수**. LLM은 Gemini OpenAI호환 엔드포인트(seed 필드 런타임 패치).
+
+| 기법 | judge | kw_recall | single | multi | relat | global |
+| --- | --- | --- | --- | --- | --- | --- |
+| hybrid | 0.806 | 0.896 | 1.00 | 0.92 | 1.00 | 0.25 |
+| e2b_hybrid | 0.806 | 0.859 | 1.00 | 0.92 | 1.00 | 0.25 |
+| **★HippoRAG2(PPR)** | **0.806** | **0.907** | 1.00 | 0.92 | 1.00 | 0.25 |
+| standard | 0.778 | 0.882 | 1.00 | 0.92 | 0.80 | 0.25 |
+| e2b(그래프만) | 0.389 | 0.449 | 0.36 | 0.42 | 0.40 | 0.375 |
+| graphrag(평면트리플) | 0.222 | 0.257 | 0.27 | 0.08 | 0.80 | 0.00 |
+
+- **★ hybrid = e2b_hybrid = HippoRAG2 judge 0.806 3자 공동 1위**, HippoRAG2가 kw_recall 0.907로 전체 최고.
+- **성숙한 공식 그래프RAG는 최상위 도달** — 같은 e5로 PPR이 평면 하이브리드와 완전 동률, 전 유형 동일. 반면 자체 그래프(e2b 0.389·graphrag 0.222)는 훨씬 낮음 → **§10.5 최종 확증: 그래프 저성능=방법론 아니라 구현 성숙도**(OpenIE+PPR+passage노드 대 SimpleLLMPathExtractor+무랭킹).
+- **PPR 다중홉 강점**(multi 0.917 최상위군) — 임베딩 통제했으니 순수 PPR 메커니즘의 값어치. 단 **global 0.25**로 평면과 같음(우리 global 질문이 전 기법 약함) → HippoRAG2는 "강한 핀포인트·다중홉 검색기"로 작동.
+- **주의**: `recall@k=0`은 검색 실패 아님 — HippoRAG 반환이 원문 문단(파일명 소실)이라 recall@k 미산출, **judge·kw_recall로 평가**(그래프 기법 방침과 동일). 의존성: hipporag가 torch 2.10→2.5.1·transformers 다운그레이드(+vllm)했으나 기존 파이프라인 정상 확인. `pip install hipporag` 별도(핵심 requirements 미포함, 어댑터 지연 import).
+- 인프라: config `hipporag.yaml`(contriever·동작확인용)·`hipporag_e5.yaml`(e5·공정결론용). 결과 `results/local_eval/hipporag_matrix.json`.
+
 ## 11. 사용 프로필 (범용 vs 커뮤니티)
 > 결론은 "하나의 승자"가 아니라 **용도별 두 프로필**(§10.7~10.9). 상세·명령: [docs/PROFILES.md](docs/PROFILES.md).
 

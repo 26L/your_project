@@ -63,12 +63,16 @@ class HippoRAGBackend(RagBackend):
         if key and not os.environ.get("OPENAI_API_KEY"):
             os.environ["OPENAI_API_KEY"] = key
         emb = getattr(self.cfg, "hipporag_embedding", None) or "facebook/contriever"
-        self._hr = HippoRAG(
+        emb_url = getattr(self.cfg, "hipporag_embedding_base_url", None)
+        kwargs = dict(
             save_dir=self.save_dir,
             llm_model_name=self.cfg.llm.model,
             llm_base_url=_GEMINI_OPENAI,
             embedding_model_name=emb,
         )
+        if emb_url:  # e5 등 OpenAI호환 서버로 임베딩(공정비교) — 이름에 "text-embedding" 필요
+            kwargs["embedding_base_url"] = emb_url
+        self._hr = HippoRAG(**kwargs)
         return self._hr
 
     def index(self, documents: Sequence[Any]) -> None:

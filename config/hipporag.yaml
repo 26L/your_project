@@ -1,0 +1,17 @@
+# HippoRAG2 검증용 — 생성 Gemini(OpenAI호환), 임베딩 contriever(HippoRAG 네이티브).
+# 공정 e5 비교는 hipporag_embedding 을 OpenAI호환 e5 서버로 교체.
+llm:
+  provider: google
+  model: gemini-2.5-flash
+  temperature: 0.1
+  max_tokens: 4096
+  thinking: false
+embed:
+  provider: local
+  model: intfloat/multilingual-e5-small
+chunk_size: 1024
+chunk_overlap: 64
+top_k: 4
+data_dir: data/company
+storage_dir: storage
+hipporag_embedding: facebook/contriever
