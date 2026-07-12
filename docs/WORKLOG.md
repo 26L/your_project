@@ -113,6 +113,26 @@
 - 결과: `results/local_eval/{graphrag_e2b,graphrag_e2b_hybrid}_gemma_fixed.json`. 비용 $0.
 - **방법론 위치**: 우리 검증이 "논문식인가" 정리 → CLAUDE.md §10.6(통제·애블레이션·강judge 교차검증·반증은 논문식 / 소규모 가상 코퍼스·유의성 부재는 논문 수준 아님 / 근본은 한국어·사내문서 도메인에 맞는 공개 벤치 부재).
 
+## 2026-07-12 (연속 세션 — 공개벤치 외부검증 + HippoRAG2)
+**시도·완료한 것**
+- **HotpotQA 공개벤치**(n=100 다중홉) 도입 — 평면 3종 + 그래프 계열 외부검증. 중립 judge로 교정.
+- **전 10기법 매트릭스**(회사 n=36) + run1/run2 **재현성**(상위4종 Δ=0). `hybrid=e2b_hybrid` 공동1위 0.806.
+- **격차 원인분석**(§10.8): 연결성 아님(역설 — 회사가 더 촘촘한데 더 약함), 질문-정렬·답변스타일이 원인.
+- **코퍼스 품질 실측**(§10.9): 회사 88%가 자동생성 near-duplicate(TTR 0.156). 내부 벤치 타당성 부분 흔들림.
+- **용도별 2 프로필**(§11): 범용(hybrid) / 커뮤니티(graph+vector). config·docs/PROFILES.md.
+- **HippoRAG2 통합**(§10.10) — 공식 `hipporag` 어댑터([methods/hipporag.py]) + **e5 OpenAI호환 서버**([scripts/e5_openai_server.py])로 임베딩 통제(PPR만 변수). 내부 judge **0.806 공동1위** → "그래프 저성능=구현 성숙도" 확증.
+- **HippoRAG2 외부검증**(§10.11): HotpotQA 0.640 — **25% recognition-memory JSON 실패**. 원인 판명: 트리플필터 프롬프트가 **Llama-3.3-70B DSPy튜닝**인데 Gemini로 돌림 + **e5 vs NV-Embed-v2 핸디캡**.
+- **독립 논문 대조**: VLDB 2025([2503.04338]) 12기법 벤치와 결론 수렴 → 외부 타당성(§10.6 갭 부분해소).
+- **논문 본문 정독**: v1(2405.14831 full — PPR·node specificity sᵢ=\|Pᵢ\|⁻¹·τ0.8·damping0.5), v2(2502.14802 §3 — Query-to-Triple, recognition memory=트리플 필터, passage 노드 contains edge, PPR 시드=구+passage).
+- 아티팩트 2종: 검증 매트릭스 히트맵 · HippoRAG2 해설.
+
+### ★ 내일 할일 (TODO)
+1. **§10.11 교정(먼저)** — "HotpotQA서 HippoRAG≈Vanilla"는 **VLDB의 v1(Llama-3-8B)** 기준임을 명시. **v2 논문 자체 수치는 HippoRAG2가 HotpotQA F1 75.5·recall@5 96.3 최고**(Llama-3.3-70B+NV-Embed). "압도 못 함"은 버전·모델 의존적 → 문장 분리.
+2. **HippoRAG2 외부 깨끗 재실행** — 25% 버그 해소 택1: (a) 트리플필터를 Gemini JSON모드/프롬프트 보정(최소) / (b) 필터 LLM을 Llama(Ollama)로 맞춰 DSPy튜닝 정합 / (c) NV-Embed로 v2 완전정합(무겁·VRAM). → 깨끗한 외부 수치 확보.
+3. **RAPTOR 통합** — VLDB Table5·HippoRAG2 Table2에서 **specific QA 강자**(트리 계층요약, 비그래프). **다음 기법 1순위**. §7대로 원논문(Sarthi 2024)·레포 먼저.
+4. (선택) LightRAG 추가 / 논문 "new variants(연산자 재조합) ↔ 우리 e2b_hybrid" 대조.
+5. **push** — 밀린 커밋 원격 반영 확인(자격증명은 로컬).
+
 ## 핵심 결과 (누적)
 - **하이브리드 검색이 대체로 최고**, 다중 홉·노이즈가 공통 난점.
 - **GraphRAG는 현재 미결론** — 그래프가 빈약(노드 속성/임베딩/커뮤니티 요약 없음)해 공정 판정 불가(CLAUDE.md §10).
