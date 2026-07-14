@@ -131,7 +131,11 @@
 2. **HippoRAG2 외부 깨끗 재실행** — 25% 버그 해소.
    - **07-13 새벽 시도 결과(실측)**: 어댑터에 내부LLM override 추가(config `hipporag_llm_{base_url,model,key_env}`) → **NIM Llama-3.3-70B 배선 성공**. **NV-Embed-v2는 무료티어 없음**(v1·nv-embedqa-e5-v5만). ★ **HippoRAG는 OpenIE·fact를 `{LLM명}` 네임스페이스로 저장 → LLM 교체 시 전체 재인덱싱 필수**(인덱스 재사용 불가, 실측 확인). ★ **NIM 무료 40 RPM이 bulk OpenIE에 치명적** — 30문서 재인덱싱도 RateLimitError 연발, 문서당 24~62초. 991문서는 비현실적.
    - **✅ 07-13 완료(반증) — 0.640은 진짜 수치.** ① JSON-repair 추가 → 파싱에러 25→0, judge 0.640 **불변** ② nv-embed-v1(4096d) 재인덱싱 → 0.650(노이즈). **두 가설 다 반증** → "25% 저하 하한"은 틀렸고 0.640~0.650이 HippoRAG2 진짜 성능. §10.11 교정 완료. **이 TODO 종결.**
-3. **RAPTOR 통합** — VLDB Table5·HippoRAG2 Table2에서 **specific QA 강자**(트리 계층요약, 비그래프). **다음 기법 1순위**. §7대로 원논문(Sarthi 2024)·레포 먼저.
+3. **RAPTOR 통합 (다음 기법 1순위) — 07-13 출처검증 완료, 착수 준비됨.**
+   - **정의**: 재귀 요약 트리(비그래프). 청크→임베딩→클러스터링(GMM soft + UMAP)→클러스터를 LLM 요약=부모노드→루트까지 재귀. 검색: tree traversal / collapsed tree. arXiv 2401.18059, [parthsarthi03/raptor](https://github.com/parthsarthi03/raptor).
+   - **우리에 유리**: `BaseEmbeddingModel`/`BaseSummarizationModel`/`BaseQAModel` 상속으로 **e5·Gemini 그대로 주입**(통제 비교 유지, 기본은 OpenAI). API: `RetrievalAugmentation.add_documents(text)`/`.answer_question(q)`/`.save()`.
+   - **착수 순서**: ① 설치(clone+requirements, pip패키지 여부 확인) ② `methods/raptor.py` 어댑터(커스텀 e5/Gemini 3모델 → RetrievalAugmentation; index=add_documents+save, query=answer_question+컨텍스트매핑) ③ registry+config ④ 평가(회사 핀포인트 + HotpotQA — VLDB의 "specific QA 최강" 재현되나).
+   - **가설**: 계층 요약이 핀포인트에도 강한지(§10.11 새 발견). HippoRAG(PPR=옆으로 연상)와 다른 축(위로 추상화) 비교.
 4. (선택) LightRAG 추가 / 논문 "new variants(연산자 재조합) ↔ 우리 e2b_hybrid" 대조.
 5. **push** — 밀린 커밋 원격 반영 확인(자격증명은 로컬).
 
