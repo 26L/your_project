@@ -130,7 +130,7 @@
 1. **§10.11 교정(먼저)** — "HotpotQA서 HippoRAG≈Vanilla"는 **VLDB의 v1(Llama-3-8B)** 기준임을 명시. **v2 논문 자체 수치는 HippoRAG2가 HotpotQA F1 75.5·recall@5 96.3 최고**(Llama-3.3-70B+NV-Embed). "압도 못 함"은 버전·모델 의존적 → 문장 분리.
 2. **HippoRAG2 외부 깨끗 재실행** — 25% 버그 해소.
    - **07-13 새벽 시도 결과(실측)**: 어댑터에 내부LLM override 추가(config `hipporag_llm_{base_url,model,key_env}`) → **NIM Llama-3.3-70B 배선 성공**. **NV-Embed-v2는 무료티어 없음**(v1·nv-embedqa-e5-v5만). ★ **HippoRAG는 OpenIE·fact를 `{LLM명}` 네임스페이스로 저장 → LLM 교체 시 전체 재인덱싱 필수**(인덱스 재사용 불가, 실측 확인). ★ **NIM 무료 40 RPM이 bulk OpenIE에 치명적** — 30문서 재인덱싱도 RateLimitError 연발, 문서당 24~62초. 991문서는 비현실적.
-   - **→ 택1(재조정)**: (a) **트리플필터만 Gemini-robust하게**(JSON-repair를 어댑터에 추가, 재인덱싱 불필요·최소·현실적 ← **1순위**) / (b) NIM Llama로 재인덱싱하되 **throttle+밤샘** / (c) 로컬 Ollama Llama(VRAM 여의치 않음).
+   - **✅ 07-13 완료(반증) — 0.640은 진짜 수치.** ① JSON-repair 추가 → 파싱에러 25→0, judge 0.640 **불변** ② nv-embed-v1(4096d) 재인덱싱 → 0.650(노이즈). **두 가설 다 반증** → "25% 저하 하한"은 틀렸고 0.640~0.650이 HippoRAG2 진짜 성능. §10.11 교정 완료. **이 TODO 종결.**
 3. **RAPTOR 통합** — VLDB Table5·HippoRAG2 Table2에서 **specific QA 강자**(트리 계층요약, 비그래프). **다음 기법 1순위**. §7대로 원논문(Sarthi 2024)·레포 먼저.
 4. (선택) LightRAG 추가 / 논문 "new variants(연산자 재조합) ↔ 우리 e2b_hybrid" 대조.
 5. **push** — 밀린 커밋 원격 반영 확인(자격증명은 로컬).

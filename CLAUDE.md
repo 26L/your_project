@@ -433,7 +433,10 @@ cp .env.example .env   # GEMINI_API_KEY 채우기 (GOOGLE_API_KEY 도 인식)
 
 **(1) HippoRAG2 외부검증 (HotpotQA n=100, e5, PPR)** — `results/local_eval/hipporag_hotpot.json`
 - judge **0.640** — 외부 클러스터(평면 0.64~0.69)에 안착, 아무도 압도 못 함(§10.7과 일치).
-- ⚠️ **25/100 문항에서 recognition-memory JSON 파싱 실패**(Gemini OpenAI호환 응답 절단) → **보수적 하한**. 방법 한계 아니라 **통합 글루 이슈**(HippoRAG 자체 OpenAI 클라이언트 ↔ Gemini shim의 엄격 JSON 불일치). 내부(0.806)에선 덜 트리거돼 안 터짐.
+- **★ 07-13 교정 — 0.640은 저하값이 아니라 진짜 수치.** 처음엔 "25/100 recognition-memory JSON 파싱 실패(Gemini shim ↔ HippoRAG 엄격 JSON) → 보수적 하한"으로 봤으나, **두 가설 모두 실측 반증**:
+  - **가설 A(버그)**: 파서에 JSON-repair(잘린 출력에서 완전한 트리플만 정규식 복구) 추가 → 파싱에러 25→**0**, judge **0.640→0.640**(불변). 필터 실패 시 graceful 폴백이 복구본과 동등해 점수를 안 깎았음.
+  - **가설 B(임베딩)**: e5-small(384d)→**NIM nv-embed-v1(4096d)** 재인덱싱(OpenIE는 Gemini 재사용) → judge **0.640→0.650**(Δ+0.010, 노이즈). 시노님 엣지 폭증(→**151,873**, 20배+)에도 불변 → §10.8 "연결성↑≠성능↑" 재확인.
+  - **→ 0.640~0.650이 이 셋업(Gemini 생성·judge)의 HippoRAG2 진짜 성능.** 외부 클러스터(평면 0.64~0.69)에 안착, 아무도 압도 못 함(§10.7 일치). 논문 75.5와의 격차는 고칠 레버가 아니라 **메트릭(F1 vs LLM-judge) + NV-Embed-v2(무료엔 v1만) + 다른 하니스**. 결과 `results/local_eval/hipporag_hotpot{,_repaired,_nvembed}.json`. 인프라: 어댑터 JSON-repair 패치 + 내부LLM/임베딩 override(config `hipporag_llm_*`, NIM 배선).
 
 **(2) 독립 논문 대조 — [In-depth Analysis of Graph-based RAG (VLDB 2025)](https://arxiv.org/abs/2503.04338)** (CUHK+Huawei, 12기법×11데이터셋×GPT-4o judge)
 - **프레임워크 수렴**: 논문의 4단계(graph building→index→operator config→retrieval&generation)가 우리 `RagBackend`+하니스 분해와 동일 철학. "기법=연산자 조합" = 우리 §4 플러그형 백엔드.
