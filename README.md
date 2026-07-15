@@ -29,14 +29,18 @@
 | graphrag_e2b (**그래프만**) | 0.333 | 0.36 | 0.50 | 0.20 | 0.12 |
 | graphrag_e2b_l5 (그래프+커뮤니티요약) | 0.389 | 0.45 | 0.42 | 0.40 | 0.25 |
 | **★ graphrag_e2b_hybrid (그래프+직접벡터)** | **0.806** | 1.00 | 0.92 | 0.80 | 0.38 |
+| **★ HippoRAG2 (공식, OpenIE+PPR)** | **0.806** | 1.00 | 0.92 | 1.00 | 0.25 |
+
+> **hybrid = graphrag_e2b_hybrid = HippoRAG2, judge 0.806 3자 공동 1위** (같은 e5 임베딩 통제).
 
 ### 핵심 발견
 
-1. **GraphRAG 저성능은 방법론의 구조적 한계가 아니었다** — 5단계 검증(강judge 재채점 → 강추출 재구축 → **재랭커 임베딩 버그** 발견·수정 → 단일 검색 기법 진단 → **검색층 하이브리드**)으로 원인을 규명했다. 원인은 **① 재랭커 임베딩 버그**(검색 노드의 `트리플+원문`을 e5가 앞부분만 임베딩해 정답 청크 탈락) **+ ② 단일 검색 기법**(그래프 검색만 사용).
-2. **올바른 검색층이면 그래프가 평면을 따라잡는다** — 그래프 검색에 **직접 청크 벡터검색을 RRF로 융합**하니 **judge 0.333 → 0.806**(2.4배), 핀포인트(single 1.0·multi 0.92)가 평면 수준으로 회복되면서 **전역(global 0.38)·연결성 강점은 유지**. 의미+키워드=하이브리드가 단일을 이겼던 것과 같은 원리(그래프+벡터).
-3. **벤치마크 함정** — 약한 judge·단일 검색·미세 버그가 결론을 통째로 왜곡할 수 있다. **강judge 교차검증 + 실제 LLM 전달 컨텍스트 검사**로 "구조적 한계"라는 오결론을 뒤집었다.
+1. **GraphRAG 저성능은 방법론의 구조적 한계가 아니라 구현 성숙도다** — 자체 그래프(graphrag_e2b 0.333)와 **공식 HippoRAG2 PPR(0.806)** 의 격차가 이를 증명한다. 같은 임베딩(e5)에서, OpenIE+**Personalized PageRank**+passage노드+node specificity를 갖춘 성숙한 구현은 평면 하이브리드와 동률에 도달한다.
+2. **올바른 검색층이면 그래프가 평면을 따라잡는다** — 자체 그래프도 **직접 청크 벡터검색을 RRF로 융합**하니 **judge 0.333 → 0.806**(2.4배). 원인 규명 5단계에서 **재랭커 임베딩 버그 + 단일 검색 기법**을 잡아낸 결과.
+3. **"하이브리드 > 단일검색"은 도메인 특이적** — 공개벤치(HotpotQA n=100)에선 세 검색이 **통계적 동률**(McNemar 무유의차). 자체 코퍼스(한국어 사내문서)의 우위가 일반법칙은 아님을 **외부검증으로 확인**.
+4. **벤치마크 함정 — 결론을 스스로 반증하라** — 약judge·단일검색·미세버그가 결론을 왜곡한다. "그래프=구조적 한계", "HippoRAG=버그로 저하" 두 결론을 **실측으로 뒤집었다**(강judge 교차검증·공개벤치·레버 애블레이션).
 
-> 전체 검증 여정(5단계)과 수치는 [`CLAUDE.md`](CLAUDE.md)(§10.5)와 [`docs/WORKLOG.md`](docs/WORKLOG.md) 참고.
+> 결론 한 장: [`docs/SUMMARY.md`](docs/SUMMARY.md) · 용도별 선택: [`docs/PROFILES.md`](docs/PROFILES.md) · 전체 여정: [`CLAUDE.md`](CLAUDE.md) §10.5~10.11.
 
 ---
 
@@ -83,8 +87,9 @@
 | Hybrid | 벡터 + BM25 (RRF 융합) | ✅ |
 | GraphRAG | 지식그래프 + 그래프 탐색 | ✅ |
 | **graphrag_e2b** | 로컬 산문추출로 타입+설명 채운 그래프 | ✅ |
-| **graphrag_e2b_l5** | 위 + 커뮤니티 탐지·요약(전역 강화) | ✅ |
-| LightRAG / HippoRAG2 / … | 듀얼레벨 / PageRank 등 | 🔜 |
+| **graphrag_e2b_l5 / _adaptive / _hybrid** | 커뮤니티 요약 / 라우팅 / 그래프+직접벡터 | ✅ |
+| **★ HippoRAG2** | 공식 구현 — OpenIE 지식그래프 + Personalized PageRank | ✅ **최상위 동률** |
+| RAPTOR / LightRAG / … | 트리 계층요약 / 듀얼레벨 등 | 🔜 (RAPTOR 착수점 확정) |
 
 임베딩 축: 로컬 `multilingual-e5-small`(기본), Gemini `gemini-embedding-001`, OpenAI 등 교체 가능.
 
@@ -152,15 +157,19 @@ docs/           # 설계·논문정리·작업 타임라인
 
 ## 💡 배운 점 · 한계
 
-- **검색 방식 전환엔 추가 파이프라인이 필요**하다 — 벡터/키워드는 청킹·색인이면 되지만, GraphRAG는 그 위에 엔티티·관계 추출 → 그래프 구축 → 그래프 검색이 더 필요하다.
-- **노드 속성(타입·설명·임베딩)이 없으면 문서 연결이 표현되지 않는다** — 그래프 계열의 성패는 추출 품질에 달려 있다.
-- 현재 코퍼스는 가상 생성 문서다. GraphRAG 본연의 성능을 최종 판정하려면 커뮤니티 요약 고도화 + 실제 문서로 추가 검증이 필요하다.
+- **단일 승자는 없다 — 용도별 2 프로필**: 범용은 `hybrid`(벡터+키워드), 조직 특화·연결성·전역 질의는 `graphrag_e2b_hybrid`/HippoRAG2. → [`docs/PROFILES.md`](docs/PROFILES.md).
+- **그래프 저성능 = 방법론이 아니라 구현 성숙도** — 자체 그래프(0.33)와 공식 HippoRAG2 PPR(0.806)의 격차가 증명. 성숙한 OpenIE+PPR+passage노드면 평면과 동률.
+- **연결성 ↑ ≠ 성능 ↑ (반직관)** — 과연결 그래프가 핀포인트엔 오히려 노이즈. 그래프의 값어치는 연결성의 양이 아니라 **질문이 실제로 연결을 요구하는지**에 달렸다.
+- **코퍼스 품질 실측** — 자체 코퍼스 88%가 자동생성 near-duplicate(TTR 0.156)였음 → 수치에 아티팩트 혼입. 실무 신뢰는 **외부(HotpotQA)·손작성** 위주.
+- **방법론이 결과보다 셀링포인트** — 통제·애블레이션·강judge 교차검증·**자기 반증**. 그럴듯한 핑계를 실측으로 걷어내는 게 검증의 값어치.
 
 ---
 
 ## 📄 더 보기
 
+- [`docs/SUMMARY.md`](docs/SUMMARY.md) — **RAG 핵심 압축**(한 장 결론) ← 여기부터
+- [`docs/PROFILES.md`](docs/PROFILES.md) — **용도별 2 프로필**(범용 vs 커뮤니티)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — **코드 지도**(무슨 코드가 어디, X 고치려면 어디)
-- [`CLAUDE.md`](CLAUDE.md) — 설계 방향·규칙·전체 결과 정리
-- [`docs/WORKLOG.md`](docs/WORKLOG.md) — 작업 타임라인
+- [`docs/RUN_GUIDE.md`](docs/RUN_GUIDE.md) · [`docs/TECH_REFERENCE.md`](docs/TECH_REFERENCE.md) — 실행 가이드 · 기술 레퍼런스
+- [`CLAUDE.md`](CLAUDE.md) — 설계·규칙·전체 결과(§10.5~10.11) · [`docs/WORKLOG.md`](docs/WORKLOG.md) — 타임라인
 - [`docs/graph_quality_design.md`](docs/graph_quality_design.md) — 그래프 품질 개선 설계(L1~L5)
