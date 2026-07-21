@@ -1,6 +1,6 @@
 # MES · WMS — 개념과 RAG 연결 관점
 
-> 제조·물류 현장 시스템(MES·WMS)이 무엇이고, 왜 이 프로젝트의 **문서 연결성 RAG**(특히 커뮤니티 프로필)와 잘 맞는지 정리. 학습·기획용. RAG 결론은 [SUMMARY.md](SUMMARY.md)·[PROFILES.md](PROFILES.md) 참고.
+> 제조·물류 현장 시스템(MES·WMS)이 무엇이고, 왜 이 프로젝트의 **문서 연결성 RAG**(특히 커뮤니티 프로필)와 잘 맞는지 정리. 학습·기획용. RAG 결론은 [RESULT_SUMMARY.md](RESULT_SUMMARY.md)·[RESULT_PROFILES.md](RESULT_PROFILES.md) 참고.
 
 ## 1. MES (Manufacturing Execution System, 생산관리시스템)
 

@@ -23,11 +23,11 @@
 
 ## 2026-06-30 (오후 12~16시)
 **GraphRAG + 로컬 임베딩 + 진단**
-- GraphRAG 논문 정독·번역([graphrag_논문정리.md](graphrag_논문정리.md)), 구현 `methods/graphrag.py` *(12:21)* — MAX_TOKENS·nested async·임베딩 quota 해결.
+- GraphRAG 논문 정독·번역([LOG_PAPER_GRAPHRAG.md](LOG_PAPER_GRAPHRAG.md)), 구현 `methods/graphrag.py` *(12:21)* — MAX_TOKENS·nested async·임베딩 quota 해결.
 - **로컬 임베딩**(multilingual-e5-small, **GPU**) 추가 → rate limit 해방.
 - GraphRAG 공정 재대결(embed_kg_nodes=True + 로컬), 결과 `results/graphrag.json` *(15:47)*.
 - ⭐ **그래프 진단**: 엔티티 노드에 **속성·설명·임베딩 없음** 발견 → "빈약한 그래프"가 저성능 원인.
-- 그래프 품질 개선 설계안 [graph_quality_design.md](graph_quality_design.md) 작성.
+- 그래프 품질 개선 설계안 [DESIGN_GRAPH.md](DESIGN_GRAPH.md) 작성.
 
 ## 2026-07-01 (그래프 품질 개선 — E2B + 레버 L1~L5 + Neo4j)
 **빈약 그래프 → 풍부한 그래프 재구성 + 검색전략·전역강화 실험. 전 과정 로컬·무료(M2 gemma + RTX e5 + Neo4j).**
@@ -119,7 +119,7 @@
 - **전 10기법 매트릭스**(회사 n=36) + run1/run2 **재현성**(상위4종 Δ=0). `hybrid=e2b_hybrid` 공동1위 0.806.
 - **격차 원인분석**(§10.8): 연결성 아님(역설 — 회사가 더 촘촘한데 더 약함), 질문-정렬·답변스타일이 원인.
 - **코퍼스 품질 실측**(§10.9): 회사 88%가 자동생성 near-duplicate(TTR 0.156). 내부 벤치 타당성 부분 흔들림.
-- **용도별 2 프로필**(§11): 범용(hybrid) / 커뮤니티(graph+vector). config·docs/PROFILES.md.
+- **용도별 2 프로필**(§11): 범용(hybrid) / 커뮤니티(graph+vector). config·docs/RESULT_PROFILES.md.
 - **HippoRAG2 통합**(§10.10) — 공식 `hipporag` 어댑터([methods/hipporag.py]) + **e5 OpenAI호환 서버**([scripts/e5_openai_server.py])로 임베딩 통제(PPR만 변수). 내부 judge **0.806 공동1위** → "그래프 저성능=구현 성숙도" 확증.
 - **HippoRAG2 외부검증**(§10.11): HotpotQA 0.640 — **25% recognition-memory JSON 실패**. 원인 판명: 트리플필터 프롬프트가 **Llama-3.3-70B DSPy튜닝**인데 Gemini로 돌림 + **e5 vs NV-Embed-v2 핸디캡**.
 - **독립 논문 대조**: VLDB 2025([2503.04338]) 12기법 벤치와 결론 수렴 → 외부 타당성(§10.6 갭 부분해소).
@@ -146,8 +146,8 @@
 
 ## 산출물 위치
 - 설계·규칙·결과 요약: `CLAUDE.md`
-- 논문 정리: `docs/graphrag_논문정리.md`
-- 그래프 개선 설계: `docs/graph_quality_design.md`
+- 논문 정리: `docs/LOG_PAPER_GRAPHRAG.md`
+- 그래프 개선 설계: `docs/DESIGN_GRAPH.md`
 - 결과 데이터: `results/*.json` (+ `results/archive_24doc/`)
 - 코퍼스: `data/company/` (+ `data/noise/`)
 - 생성기: `scripts/generate_large_corpus.py`, `scripts/generate_rich_corpus.py`

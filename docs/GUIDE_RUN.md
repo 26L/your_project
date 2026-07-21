@@ -113,4 +113,4 @@ docker compose up -d                                  # (그래프 쓸 때)
 .venv/bin/ragbench eval  --method hybrid --config config/ollama.yaml --eval-set config/eval_sample.yaml --judge
 ```
 
-> 자세한 코드 위치는 [ARCHITECTURE.md](ARCHITECTURE.md), 기술 문서는 [TECH_REFERENCE.md](TECH_REFERENCE.md).
+> 자세한 코드 위치는 [GUIDE_ARCHITECTURE.md](GUIDE_ARCHITECTURE.md), 기술 문서는 [GUIDE_TECH.md](GUIDE_TECH.md).

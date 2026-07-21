@@ -1,6 +1,6 @@
 # 아키텍처 · 코드 지도 (ARCHITECTURE)
 
-> `ragbench` 코드베이스 탐색·수정용 가이드. **"무슨 코드가 어디 있고, X를 고치려면 어디를 보는지"** 에 초점. 설계 배경·실험 결과는 [CLAUDE.md](../CLAUDE.md), 진행 타임라인은 [WORKLOG.md](WORKLOG.md) 참고.
+> `ragbench` 코드베이스 탐색·수정용 가이드. **"무슨 코드가 어디 있고, X를 고치려면 어디를 보는지"** 에 초점. 설계 배경·실험 결과는 [CLAUDE.md](../CLAUDE.md), 진행 타임라인은 [LOG_WORK.md](LOG_WORK.md) 참고.
 
 ## 1. 한눈에 — 플러그형 설계
 

@@ -56,4 +56,4 @@ ragbench eval --method graphrag_e2b_hybrid --config config/profile_community.yam
 | global·"전사/각 부서/어떻게 이어지나" 가 다수 | 커뮤니티(`graphrag_e2b_adaptive`) |
 | 속도·비용 최우선, 그래프 부담 | 범용(`hybrid`) |
 
-> 근거 수치: [../CLAUDE.md](../CLAUDE.md) §10.4~10.9. 실행 상세: [RUN_GUIDE.md](RUN_GUIDE.md).
+> 근거 수치: [../CLAUDE.md](../CLAUDE.md) §10.4~10.9. 실행 상세: [GUIDE_RUN.md](GUIDE_RUN.md).
