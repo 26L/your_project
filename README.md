@@ -170,6 +170,7 @@ docs/           # 설계·논문정리·작업 타임라인
 - [`docs/SUMMARY.md`](docs/SUMMARY.md) — **RAG 핵심 압축**(한 장 결론) ← 여기부터
 - [`docs/PROFILES.md`](docs/PROFILES.md) — **용도별 2 프로필**(범용 vs 커뮤니티)
 - [`docs/MES_WMS.md`](docs/MES_WMS.md) — **MES·WMS 도메인 확장**(개념 + ragbench 검증 확장 기술경로)
+- [`docs/EXTERNAL_VALIDATION.md`](docs/EXTERNAL_VALIDATION.md) — **외부 검증 재설계**(공개벤치 중심 작업 목록·통계 설계)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — **코드 지도**(무슨 코드가 어디, X 고치려면 어디)
 - [`docs/RUN_GUIDE.md`](docs/RUN_GUIDE.md) · [`docs/TECH_REFERENCE.md`](docs/TECH_REFERENCE.md) — 실행 가이드 · 기술 레퍼런스
 - [`CLAUDE.md`](CLAUDE.md) — 설계·규칙·전체 결과(§10.5~10.11) · [`docs/WORKLOG.md`](docs/WORKLOG.md) — 타임라인
